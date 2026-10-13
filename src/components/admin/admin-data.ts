@@ -1,11 +1,13 @@
-import {
-  mockJobs,
-  EXPERIENCE_LEVELS,
-} from "@/components/careers/mock-jobs";
+import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+import type {
+  Application as ApplicationRow,
+  Job as JobRow,
+  Team as TeamRow,
+} from "@prisma/client";
 import {
   type EducationRecord,
 } from "@/components/careers/mock-applications";
-import { teams as careersTeams } from "@/components/careers/teams-data";
 import type { Job } from "@/components/careers/types";
 
 export type ApplicationStatus =
@@ -106,335 +108,78 @@ export const VALID_INTERVIEW_STATUSES: InterviewStatus[] = [
   "cancelled",
 ];
 
-const CITY_POOL = [
-  "Hyderabad",
-  "Bengaluru",
-  "Mumbai",
-  "Pune",
-  "Chennai",
-  "Delhi NCR",
-  "Gurugram",
-  "Kolkata",
-  "Ahmedabad",
-  "Indore",
-  "Jaipur",
-  "Noida",
-];
-
-const CURRENT_ROLE_POOL = [
-  "Software Developer",
-  "Support Engineer",
-  "Product Analyst",
-  "Marketing Executive",
-  "Sales Executive",
-  "Business Analyst",
-  "Consultant",
-  "Associate Engineer",
-  "Content Specialist",
-  "Analyst",
-];
-
-const COMPANY_POOL = [
-  "Infosys",
-  "Wipro",
-  "TCS",
-  "Accenture",
-  "Cognizant",
-  "Amazon",
-  "Flipkart",
-  "Zomato",
-  "Paytm",
-  "HCL Technologies",
-  "Deloitte",
-  "Swiggy",
-];
-
-const INSTITUTION_POOL = [
-  "Indian Institute of Technology, Bombay",
-  "National Institute of Technology, Trichy",
-  "BITS Pilani",
-  "University of Delhi",
-  "Anna University, Chennai",
-  "Vellore Institute of Technology",
-  "Indian School of Business",
-  "IIM Bangalore",
-  "SRM Institute of Science and Technology",
-  "Manipal Institute of Technology",
-];
-
-const QUALIFICATION_POOL = [
-  "Bachelor's Degree",
-  "Master's Degree",
-  "MBA",
-  "Postgraduate Diploma",
-];
-
-const FIELD_POOL = [
-  "Computer Science",
-  "Electronics & Communication",
-  "Information Technology",
-  "Business Administration",
-  "Marketing",
-  "Finance",
-  "Human Resources",
-  "Design",
-];
-
-const WHY_INTERESTED_POOL = [
-  "I am excited about Next360's mission and the opportunity to deliver impactful work.",
-  "The role aligns closely with my skills and long-term career goals.",
-  "I admire Next360's culture of innovation and would love to contribute.",
-  "This role offers a strong opportunity to grow and solve meaningful problems.",
-  "I want to join a team where my experience can make a tangible difference.",
-];
-
-const NOTICE_PERIOD_POOL = ["Immediate", "15 days", "30 days", "60 days"];
-
-const RELOCATE_POOL = ["Yes", "Maybe", "No"];
-
-const RESUME_SIZE_POOL = ["245 KB", "1.1 MB", "890 KB", "642 KB", "518 KB", "1.4 MB"];
-
-const STATUS_UPDATE_OFFSET_DAYS: Record<ApplicationStatus, number> = {
-  applied: 0,
-  under_review: 1,
-  interview: 3,
-  selected: 5,
-  rejected: 2,
-  withdrawn: 1,
-};
-
-function paddedMobile(seed: number): string {
-  const a = String(87650 + seed * 137).slice(-5);
-  const b = String(23410 + seed * 3791).slice(-5);
-  return `+91 ${a} ${b}`;
+function toJob(row: JobRow): Job {
+  return {
+    id: row.id,
+    title: row.title,
+    department: row.department,
+    location: row.location,
+    experience: row.experience,
+    employmentType: row.employmentType,
+    workMode: row.workMode,
+    team: row.team,
+    skills: [...row.skills],
+    description: row.description,
+    responsibilities: [...row.responsibilities],
+    qualifications: [...row.qualifications],
+    preferredQualifications: [...row.preferredQualifications],
+    benefits: [...row.benefits],
+    postedAt: row.postedAt,
+    status: row.status,
+    teamDescription: row.teamDescription ?? undefined,
+  };
 }
 
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+function toAdminApplication(row: ApplicationRow): AdminApplication {
+  return {
+    id: row.id,
+    jobId: row.jobId,
+    jobTitle: row.jobTitle,
+    department: row.department,
+    location: row.location,
+    candidateEmail: row.candidateEmail,
+    candidateFirstName: row.candidateFirstName,
+    candidateLastName: row.candidateLastName,
+    status: row.status as ApplicationStatus,
+    appliedAt: row.appliedAt.toISOString(),
+    updatedAt: row.updatedAt ? row.updatedAt.toISOString() : undefined,
+    phone: row.phone ?? undefined,
+    currentLocation: row.currentLocation ?? undefined,
+    country: row.country ?? undefined,
+    currentJobTitle: row.currentJobTitle ?? undefined,
+    currentCompany: row.currentCompany ?? undefined,
+    experienceLevel: row.experienceLevel ?? undefined,
+    yearsOfExperience: row.yearsOfExperience ?? undefined,
+    education: (row.education as unknown as EducationRecord[] | null) ?? undefined,
+    resumeFileName: row.resumeFileName ?? undefined,
+    resumeFileSize: row.resumeFileSize ?? undefined,
+    linkedinUrl: row.linkedinUrl ?? undefined,
+    githubUrl: row.githubUrl ?? undefined,
+    portfolioUrl: row.portfolioUrl ?? undefined,
+    otherWebsite: row.otherWebsite ?? undefined,
+    additionalAnswers:
+      (row.additionalAnswers as unknown as Record<string, string> | null) ??
+      undefined,
+    interviewStatus: (row.interviewStatus as InterviewStatus | null) ?? undefined,
+    interviewDate: row.interviewDate ?? undefined,
+    interviewTime: row.interviewTime ?? undefined,
+    interviewLocation: row.interviewLocation ?? undefined,
+    interviewNotes: row.interviewNotes ?? undefined,
+  };
 }
 
-function generateMockApplications(): AdminApplication[] {
-  const names = [
-    { first: "Priya", last: "Sharma" },
-    { first: "Arjun", last: "Patel" },
-    { first: "Sneha", last: "Reddy" },
-    { first: "Rahul", last: "Kumar" },
-    { first: "Ananya", last: "Nair" },
-    { first: "Vikram", last: "Singh" },
-    { first: "Meera", last: "Iyer" },
-    { first: "Karthik", last: "Menon" },
-    { first: "Divya", last: "Gupta" },
-    { first: "Aditya", last: "Joshi" },
-    { first: "Pooja", last: "Desai" },
-    { first: "Suresh", last: "Babu" },
-    { first: "Nisha", last: "Rao" },
-    { first: "Amit", last: "Verma" },
-    { first: "Lakshmi", last: "Prasad" },
-    { first: "Rohan", last: "Mehta" },
-    { first: "Swati", last: "Kulkarni" },
-    { first: "Manish", last: "Tiwari" },
-    { first: "Harini", last: "Subramanian" },
-    { first: "Deepak", last: "Choudhary" },
-    { first: "Tanvi", last: "Mishra" },
-    { first: "Nikhil", last: "Agarwal" },
-    { first: "Shruti", last: "Pandey" },
-    { first: "Vishal", last: "Rathore" },
-    { first: "Kavita", last: "Sinha" },
-    { first: "Siddharth", last: "Kulkarni" },
-    { first: "Ritu", last: "Chauhan" },
-    { first: "Gaurav", last: "Saxena" },
-    { first: "Preeti", last: "Chandra" },
-    { first: "Tarun", last: "Bhatt" },
-  ];
-
-  const statuses: ApplicationStatus[] = [
-    "applied",
-    "applied",
-    "applied",
-    "under_review",
-    "under_review",
-    "under_review",
-    "interview",
-    "interview",
-    "selected",
-    "rejected",
-    "rejected",
-    "withdrawn",
-  ];
-
-  const applications: AdminApplication[] = [];
-  const openJobs = mockJobs.filter((j) => j.status === "Open");
-
-  for (let i = 0; i < 30; i++) {
-    const job = openJobs[i % openJobs.length];
-    const name = names[i % names.length];
-    const status = statuses[i % statuses.length];
-    const daysAgo = i * 2;
-    const appliedDate = new Date();
-    appliedDate.setDate(appliedDate.getDate() - daysAgo);
-
-    const updatedDate = new Date(
-      appliedDate.getTime() + STATUS_UPDATE_OFFSET_DAYS[status] * 86400000
-    );
-
-    const handle = slugify(`${name.first}.${name.last}`);
-    const education: EducationRecord[] = [
-      {
-        qualification: QUALIFICATION_POOL[i % QUALIFICATION_POOL.length],
-        institution: INSTITUTION_POOL[i % INSTITUTION_POOL.length],
-        fieldOfStudy: FIELD_POOL[i % FIELD_POOL.length],
-        graduationYear: String(2009 + (i % 16)),
-      },
-    ];
-    if (i % 5 === 0) {
-      education.push({
-        qualification: QUALIFICATION_POOL[(i + 2) % QUALIFICATION_POOL.length],
-        institution: INSTITUTION_POOL[(i + 4) % INSTITUTION_POOL.length],
-        fieldOfStudy: FIELD_POOL[(i + 1) % FIELD_POOL.length],
-        graduationYear: String(2005 + (i % 10)),
-      });
-    }
-
-    const experienceLevel =
-      status === "interview" || status === "selected"
-        ? EXPERIENCE_LEVELS[(i + 1) % EXPERIENCE_LEVELS.length]
-        : EXPERIENCE_LEVELS[i % EXPERIENCE_LEVELS.length];
-
-    applications.push({
-      id: `ADM-APP-${String(i + 1).padStart(3, "0")}`,
-      jobId: job.id,
-      jobTitle: job.title,
-      department: job.department,
-      location: job.location,
-      candidateEmail: `${name.first.toLowerCase()}.${name.last.toLowerCase()}@example.com`,
-      candidateFirstName: name.first,
-      candidateLastName: name.last,
-      status,
-      appliedAt: appliedDate.toISOString(),
-      updatedAt: updatedDate.toISOString(),
-      phone: paddedMobile(i),
-      currentLocation: CITY_POOL[(i + 3) % CITY_POOL.length],
-      country: "India",
-      currentJobTitle: CURRENT_ROLE_POOL[i % CURRENT_ROLE_POOL.length],
-      currentCompany: COMPANY_POOL[i % COMPANY_POOL.length],
-      experienceLevel,
-      yearsOfExperience: String((i % 11) + 2),
-      education,
-      resumeFileName: `${name.first}_${name.last}_Resume.pdf`,
-      resumeFileSize: RESUME_SIZE_POOL[i % RESUME_SIZE_POOL.length],
-      linkedinUrl: `https://www.linkedin.com/in/${handle}`,
-      githubUrl: `https://github.com/${handle}`,
-      portfolioUrl:
-        i % 2 === 0 ? `https://${slugify(name.first)}.dev` : undefined,
-      additionalAnswers:
-        i === 7
-          ? undefined
-          : {
-              whyInterested:
-                WHY_INTERESTED_POOL[i % WHY_INTERESTED_POOL.length],
-              noticePeriod: NOTICE_PERIOD_POOL[i % NOTICE_PERIOD_POOL.length],
-              willingToRelocate: RELOCATE_POOL[i % RELOCATE_POOL.length],
-            },
-    });
-  }
-
-  const multiApplicationIndexes = [2, 5, 8, 11];
-  for (let m = 0; m < multiApplicationIndexes.length; m++) {
-    const i = multiApplicationIndexes[m];
-    const primary = applications[i];
-    let secondJob = openJobs[(i + 7) % openJobs.length];
-    if (secondJob.id === primary.jobId) {
-      secondJob = openJobs[(i + 8) % openJobs.length];
-    }
-    const secondStatus = statuses[(i + 3) % statuses.length];
-    const secondDate = new Date(
-      new Date(primary.appliedAt).getTime() - 3 * 86400000
-    );
-    applications.push({
-      id: `ADM-APP-${String(applications.length + 1).padStart(3, "0")}`,
-      jobId: secondJob.id,
-      jobTitle: secondJob.title,
-      department: secondJob.department,
-      location: secondJob.location,
-      candidateEmail: primary.candidateEmail,
-      candidateFirstName: primary.candidateFirstName,
-      candidateLastName: primary.candidateLastName,
-      status: secondStatus,
-      appliedAt: secondDate.toISOString(),
-      updatedAt: new Date(
-        secondDate.getTime() + STATUS_UPDATE_OFFSET_DAYS[secondStatus] * 86400000
-      ).toISOString(),
-      phone: primary.phone,
-      currentLocation: primary.currentLocation,
-      country: primary.country,
-      currentJobTitle: primary.currentJobTitle,
-      currentCompany: primary.currentCompany,
-      experienceLevel: primary.experienceLevel,
-      yearsOfExperience: primary.yearsOfExperience,
-      education: primary.education ? [primary.education[0]] : undefined,
-      resumeFileName: primary.resumeFileName,
-      resumeFileSize: primary.resumeFileSize,
-      linkedinUrl: primary.linkedinUrl,
-      githubUrl: primary.githubUrl,
-      portfolioUrl: primary.portfolioUrl,
-      additionalAnswers: primary.additionalAnswers,
-    });
-  }
-
-  const interviewSeedPlan: {
-    status: InterviewStatus | "unscheduled";
-    offsetDays: number;
-    time: string;
-    location?: string;
-  }[] = [
-    { status: "scheduled", offsetDays: 3, time: "10:00", location: "Next360 Office, Bengaluru" },
-    { status: "completed", offsetDays: -2, time: "14:30", location: "Next360 Office, Hyderabad" },
-    { status: "cancelled", offsetDays: 1, time: "11:00", location: "Next360 Office, Pune" },
-    { status: "unscheduled", offsetDays: 0, time: "" },
-  ];
-
-  const interviewApps = applications.filter((a) => a.status === "interview");
-  interviewApps.forEach((app, idx) => {
-    const plan = interviewSeedPlan[idx % interviewSeedPlan.length];
-    if (plan.status === "unscheduled") return;
-    const interviewDate = new Date();
-    interviewDate.setDate(interviewDate.getDate() + plan.offsetDays);
-    const month = String(interviewDate.getMonth() + 1).padStart(2, "0");
-    const day = String(interviewDate.getDate()).padStart(2, "0");
-    app.interviewStatus = plan.status;
-    app.interviewDate = `${interviewDate.getFullYear()}-${month}-${day}`;
-    app.interviewTime = plan.time;
-    app.interviewLocation = plan.location;
-  });
-
-  return applications;
+async function getAllJobs(): Promise<Job[]> {
+  const rows = await prisma.job.findMany();
+  return rows.map(toJob);
 }
 
-const ADMIN_APPLICATIONS_STORE_KEY = "__next360_admin_applications_store__";
-
-function getAdminApplicationStore(): AdminApplication[] {
-  const g = globalThis as Record<string, unknown>;
-  const existing = g[ADMIN_APPLICATIONS_STORE_KEY] as
-    | AdminApplication[]
-    | undefined;
-  if (Array.isArray(existing)) {
-    return existing;
-  }
-  const store = generateMockApplications();
-  Object.defineProperty(g, ADMIN_APPLICATIONS_STORE_KEY, {
-    value: store,
-    writable: false,
-    enumerable: false,
-    configurable: false,
-  });
-  return store;
+async function getAllApplications(): Promise<AdminApplication[]> {
+  const rows = await prisma.application.findMany();
+  return rows.map(toAdminApplication);
 }
 
-function getApplications(): AdminApplication[] {
-  return getAdminApplicationStore();
+async function getAllTeams(): Promise<TeamRow[]> {
+  return prisma.team.findMany();
 }
 
 function toAdminApplicationListItem(a: AdminApplication) {
@@ -462,9 +207,9 @@ export interface DashboardData {
   jobsNeedingAttention: { id: string; title: string; reason: string }[];
 }
 
-export function getDashboardData(): DashboardData {
-  const jobs = mockJobs;
-  const applications = getApplications();
+export async function getDashboardData(): Promise<DashboardData> {
+  const jobs = await getAllJobs();
+  const applications = await getAllApplications();
 
   const openJobs = jobs.filter((j) => j.status === "Open").length;
   const totalApplications = applications.length;
@@ -533,12 +278,44 @@ export function getDashboardData(): DashboardData {
   };
 }
 
-export function getAdminJobs() {
-  return mockJobs;
+export async function getAdminJobs(): Promise<Job[]> {
+  return getAllJobs();
 }
 
-export function getAdminJobById(id: string): Job | undefined {
-  return mockJobs.find((job) => job.id === id);
+export async function getAdminJobById(id: string): Promise<Job | undefined> {
+  const row = await prisma.job.findUnique({ where: { id } });
+  return row ? toJob(row) : undefined;
+}
+
+export async function getPublicOpenJobs(): Promise<Job[]> {
+  const rows = await prisma.job.findMany({ where: { status: "Open" } });
+  return rows.map(toJob);
+}
+
+export async function getJobById(id: string): Promise<Job | undefined> {
+  return getAdminJobById(id);
+}
+
+export async function getSimilarJobs(job: Job, limit = 4): Promise<Job[]> {
+  const rows = await prisma.job.findMany({ where: { NOT: { id: job.id } } });
+  return rows
+    .map(toJob)
+    .sort((a, b) => {
+      let scoreA = 0;
+      let scoreB = 0;
+      if (a.department === job.department) scoreA += 3;
+      if (b.department === job.department) scoreB += 3;
+      if (a.team === job.team) scoreA += 2;
+      if (b.team === job.team) scoreB += 2;
+      if (a.location === job.location) scoreA += 1;
+      if (b.location === job.location) scoreB += 1;
+      const sharedA = a.skills.filter((s) => job.skills.includes(s)).length;
+      const sharedB = b.skills.filter((s) => job.skills.includes(s)).length;
+      scoreA += sharedA;
+      scoreB += sharedB;
+      return scoreB - scoreA;
+    })
+    .slice(0, limit);
 }
 
 export interface JobApplicationStats {
@@ -552,8 +329,10 @@ export interface JobApplicationStats {
   latestApplicationAt: string | null;
 }
 
-export function getJobApplicationStats(jobId: string): JobApplicationStats {
-  const apps = getApplications().filter((a) => a.jobId === jobId);
+export async function getJobApplicationStats(
+  jobId: string
+): Promise<JobApplicationStats> {
+  const apps = (await getAllApplications()).filter((a) => a.jobId === jobId);
 
   const total = apps.length;
 
@@ -579,8 +358,8 @@ export function getJobApplicationStats(jobId: string): JobApplicationStats {
   return { total, byStatus, latestApplicationAt };
 }
 
-export function getAdminApplications() {
-  return getApplications();
+export async function getAdminApplications(): Promise<AdminApplication[]> {
+  return getAllApplications();
 }
 
 export interface CreateJobInput {
@@ -600,31 +379,43 @@ export interface CreateJobInput {
   status?: string;
 }
 
-export function createAdminJob(input: CreateJobInput) {
-  const id = String(mockJobs.length + 1);
+async function nextJobId(): Promise<string> {
+  const jobs = await prisma.job.findMany({ select: { id: true } });
+  let max = 0;
+  for (const j of jobs) {
+    const n = parseInt(j.id, 10);
+    if (!Number.isNaN(n) && n > max) max = n;
+  }
+  return String(max + 1);
+}
+
+export async function createAdminJob(
+  input: CreateJobInput
+): Promise<Job> {
+  const id = await nextJobId();
   const now = new Date().toISOString().split("T")[0];
 
-  const newJob = {
-    id,
-    title: input.title,
-    department: input.department,
-    location: input.location,
-    experience: input.experience,
-    employmentType: input.employmentType,
-    workMode: input.workMode,
-    team: input.team || "",
-    skills: input.skills,
-    description: input.description,
-    responsibilities: input.responsibilities || [],
-    qualifications: input.qualifications || [],
-    preferredQualifications: input.preferredQualifications || [],
-    benefits: input.benefits || [],
-    postedAt: now,
-    status: input.status || "Draft",
-  };
-
-  mockJobs.push(newJob);
-  return newJob;
+  const row = await prisma.job.create({
+    data: {
+      id,
+      title: input.title,
+      department: input.department,
+      location: input.location,
+      experience: input.experience,
+      employmentType: input.employmentType,
+      workMode: input.workMode,
+      team: input.team || "",
+      skills: input.skills,
+      description: input.description,
+      responsibilities: input.responsibilities || [],
+      qualifications: input.qualifications || [],
+      preferredQualifications: input.preferredQualifications || [],
+      benefits: input.benefits || [],
+      postedAt: now,
+      status: input.status || "Draft",
+    },
+  });
+  return toJob(row);
 }
 
 export type UpdateJobInput = Partial<CreateJobInput>;
@@ -636,57 +427,74 @@ function cleanList(items: string[] | undefined): string[] | undefined {
   return items.filter((i) => typeof i === "string" && i.trim());
 }
 
-export function updateAdminJob(
+export async function updateAdminJob(
   id: string,
   patch: UpdateJobInput
-): Job | null {
-  const job = mockJobs.find((j) => j.id === id);
-  if (!job) return null;
+): Promise<Job | null> {
+  const existing = await prisma.job.findUnique({ where: { id } });
+  if (!existing) return null;
 
-  if (typeof patch.title === "string") job.title = patch.title.trim();
+  const data: {
+    title?: string;
+    department?: string;
+    location?: string;
+    experience?: string;
+    employmentType?: string;
+    workMode?: string;
+    team?: string;
+    description?: string;
+    skills?: string[];
+    responsibilities?: string[];
+    qualifications?: string[];
+    preferredQualifications?: string[];
+    benefits?: string[];
+    status?: string;
+  } = {};
+
+  if (typeof patch.title === "string") data.title = patch.title.trim();
   if (typeof patch.department === "string") {
-    job.department = patch.department.trim();
+    data.department = patch.department.trim();
   }
-  if (typeof patch.location === "string") job.location = patch.location.trim();
+  if (typeof patch.location === "string") data.location = patch.location.trim();
   if (typeof patch.experience === "string") {
-    job.experience = patch.experience.trim();
+    data.experience = patch.experience.trim();
   }
   if (typeof patch.employmentType === "string") {
-    job.employmentType = patch.employmentType.trim();
+    data.employmentType = patch.employmentType.trim();
   }
-  if (typeof patch.workMode === "string") job.workMode = patch.workMode.trim();
+  if (typeof patch.workMode === "string") data.workMode = patch.workMode.trim();
   if (typeof patch.team === "string") {
-    const team = patch.team.trim();
-    job.team = team || undefined;
+    data.team = patch.team.trim() || "";
   }
   if (typeof patch.description === "string") {
-    job.description = patch.description.trim();
+    data.description = patch.description.trim();
   }
 
   if (Array.isArray(patch.skills)) {
-    job.skills = cleanList(patch.skills) ?? [];
+    data.skills = cleanList(patch.skills) ?? [];
   }
   if (Array.isArray(patch.responsibilities)) {
-    job.responsibilities = cleanList(patch.responsibilities) ?? [];
+    data.responsibilities = cleanList(patch.responsibilities) ?? [];
   }
   if (Array.isArray(patch.qualifications)) {
-    job.qualifications = cleanList(patch.qualifications) ?? [];
+    data.qualifications = cleanList(patch.qualifications) ?? [];
   }
   if (Array.isArray(patch.preferredQualifications)) {
-    job.preferredQualifications = cleanList(patch.preferredQualifications) ?? [];
+    data.preferredQualifications = cleanList(patch.preferredQualifications) ?? [];
   }
   if (Array.isArray(patch.benefits)) {
-    job.benefits = cleanList(patch.benefits) ?? [];
+    data.benefits = cleanList(patch.benefits) ?? [];
   }
 
   if (
     typeof patch.status === "string" &&
     VALID_JOB_STATUSES.includes(patch.status)
   ) {
-    job.status = patch.status;
+    data.status = patch.status;
   }
 
-  return job;
+  const row = await prisma.job.update({ where: { id }, data });
+  return toJob(row);
 }
 
 export type JobSortOption = "newest" | "oldest" | "title-az" | "title-za";
@@ -726,8 +534,11 @@ export interface AdminJobsListResult {
   statusCounts: Record<string, number>;
 }
 
-export function getAdminJobsList(query: AdminJobsQuery): AdminJobsListResult {
-  let filtered = [...mockJobs];
+export async function getAdminJobsList(
+  query: AdminJobsQuery
+): Promise<AdminJobsListResult> {
+  const allJobs = await getAllJobs();
+  let filtered = [...allJobs];
 
   if (query.search) {
     const term = query.search.toLowerCase();
@@ -757,7 +568,7 @@ export function getAdminJobsList(query: AdminJobsQuery): AdminJobsListResult {
   }
 
   const statusCounts: Record<string, number> = {};
-  for (const j of mockJobs) {
+  for (const j of allJobs) {
     statusCounts[j.status] = (statusCounts[j.status] || 0) + 1;
   }
 
@@ -797,7 +608,7 @@ export function getAdminJobsList(query: AdminJobsQuery): AdminJobsListResult {
     postedAt: j.postedAt,
   }));
 
-  return { jobs, total, page, limit, totalPages, totalCount: mockJobs.length, statusCounts };
+  return { jobs, total, page, limit, totalPages, totalCount: allJobs.length, statusCounts };
 }
 
 export type ApplicationsSortOption =
@@ -914,10 +725,10 @@ export function getApplicationJobOptions(
   return options;
 }
 
-export function getAdminApplicationsList(
+export async function getAdminApplicationsList(
   query: AdminApplicationsQuery
-): AdminApplicationsListResult {
-  const applications = getAdminApplicationStore();
+): Promise<AdminApplicationsListResult> {
+  const applications = await getAllApplications();
   const summary = getApplicationsSummary(applications);
   const jobOptions = getApplicationJobOptions(applications);
 
@@ -1057,56 +868,97 @@ function cleanAdditionalAnswers(
   return Object.keys(cleaned).length > 0 ? cleaned : undefined;
 }
 
-export function createAdminApplication(
-  input: CreateAdminApplicationInput
-): AdminApplication | null {
-  const job = mockJobs.find((j) => j.id === input.jobId);
-  if (!job) return null;
-
-  const store = getAdminApplicationStore();
-  const existing = store.find(
-    (a) =>
-      a.jobId === job.id &&
-      a.candidateEmail.toLowerCase() === input.candidateEmail.toLowerCase()
-  );
-  if (existing) return existing;
-
-  const now = new Date().toISOString();
-  const newApplication: AdminApplication = {
-    id: `ADM-APP-${String(store.length + 1).padStart(3, "0")}`,
-    jobId: job.id,
-    jobTitle: job.title,
-    department: job.department,
-    location: job.location,
-    candidateEmail: input.candidateEmail,
-    candidateFirstName: input.candidateFirstName,
-    candidateLastName: input.candidateLastName,
-    status: "applied",
-    appliedAt: now,
-    updatedAt: now,
-    phone: cleanOptional(input.phone),
-    currentLocation: cleanOptional(input.currentLocation),
-    country: cleanOptional(input.country),
-    currentJobTitle: cleanOptional(input.currentJobTitle),
-    currentCompany: cleanOptional(input.currentCompany),
-    experienceLevel: cleanOptional(input.experienceLevel),
-    yearsOfExperience: cleanOptional(input.yearsOfExperience),
-    education: cleanEducation(input.education),
-    resumeFileName: cleanOptional(input.resumeFileName),
-    resumeFileSize: cleanOptional(input.resumeFileSize),
-    linkedinUrl: cleanOptional(input.linkedinUrl),
-    githubUrl: cleanOptional(input.githubUrl),
-    portfolioUrl: cleanOptional(input.portfolioUrl),
-    otherWebsite: cleanOptional(input.otherWebsite),
-    additionalAnswers: cleanAdditionalAnswers(input.additionalAnswers),
-  };
-
-  store.unshift(newApplication);
-  return newApplication;
+async function nextApplicationId(): Promise<string> {
+  const apps = await prisma.application.findMany({ select: { id: true } });
+  let max = 0;
+  for (const a of apps) {
+    const m = /^ADM-APP-(\d+)$/.exec(a.id);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (!Number.isNaN(n) && n > max) max = n;
+    }
+  }
+  return `ADM-APP-${String(max + 1).padStart(3, "0")}`;
 }
 
-export function getAdminApplicationById(id: string): AdminApplication | undefined {
-  return getAdminApplicationStore().find((a) => a.id === id);
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"
+  );
+}
+
+export async function createAdminApplication(
+  input: CreateAdminApplicationInput
+): Promise<AdminApplication | null> {
+  const jobRow = await prisma.job.findUnique({ where: { id: input.jobId } });
+  if (!jobRow) return null;
+  const job = toJob(jobRow);
+
+  const existingRow = await prisma.application.findFirst({
+    where: {
+      jobId: job.id,
+      candidateEmail: { equals: input.candidateEmail, mode: "insensitive" },
+    },
+  });
+  if (existingRow) return toAdminApplication(existingRow);
+
+  const now = new Date();
+  const id = await nextApplicationId();
+  const education = cleanEducation(input.education);
+  const additionalAnswers = cleanAdditionalAnswers(input.additionalAnswers);
+  try {
+    const row = await prisma.application.create({
+      data: {
+        id,
+        jobId: job.id,
+        jobTitle: job.title,
+        department: job.department,
+        location: job.location,
+        candidateEmail: input.candidateEmail,
+        candidateFirstName: input.candidateFirstName,
+        candidateLastName: input.candidateLastName,
+        status: "applied",
+        appliedAt: now,
+        updatedAt: now,
+        phone: cleanOptional(input.phone),
+        currentLocation: cleanOptional(input.currentLocation),
+        country: cleanOptional(input.country),
+        currentJobTitle: cleanOptional(input.currentJobTitle),
+        currentCompany: cleanOptional(input.currentCompany),
+        experienceLevel: cleanOptional(input.experienceLevel),
+        yearsOfExperience: cleanOptional(input.yearsOfExperience),
+        education: education
+          ? (education as unknown as Prisma.InputJsonValue)
+          : Prisma.DbNull,
+        resumeFileName: cleanOptional(input.resumeFileName),
+        resumeFileSize: cleanOptional(input.resumeFileSize),
+        linkedinUrl: cleanOptional(input.linkedinUrl),
+        githubUrl: cleanOptional(input.githubUrl),
+        portfolioUrl: cleanOptional(input.portfolioUrl),
+        otherWebsite: cleanOptional(input.otherWebsite),
+        additionalAnswers: additionalAnswers
+          ? (additionalAnswers as unknown as Prisma.InputJsonValue)
+          : Prisma.DbNull,
+      },
+    });
+    return toAdminApplication(row);
+  } catch (error) {
+    if (!isUniqueViolation(error)) throw error;
+    const raced = await prisma.application.findFirst({
+      where: {
+        jobId: job.id,
+        candidateEmail: { equals: input.candidateEmail, mode: "insensitive" },
+      },
+    });
+    return raced ? toAdminApplication(raced) : null;
+  }
+}
+
+export async function getAdminApplicationById(
+  id: string
+): Promise<AdminApplication | undefined> {
+  const row = await prisma.application.findUnique({ where: { id } });
+  return row ? toAdminApplication(row) : undefined;
 }
 
 export function getApplicationTransitions(
@@ -1115,15 +967,17 @@ export function getApplicationTransitions(
   return APPLICATION_TRANSITIONS[status] || [];
 }
 
-export function updateAdminApplicationStatus(
+export async function updateAdminApplicationStatus(
   id: string,
   status: ApplicationStatus
-): AdminApplication | null {
-  const application = getAdminApplicationStore().find((a) => a.id === id);
-  if (!application) return null;
-  application.status = status;
-  application.updatedAt = new Date().toISOString();
-  return application;
+): Promise<AdminApplication | null> {
+  const existing = await prisma.application.findUnique({ where: { id } });
+  if (!existing) return null;
+  const row = await prisma.application.update({
+    where: { id },
+    data: { status, updatedAt: new Date() },
+  });
+  return toAdminApplication(row);
 }
 
 export type CandidateSortOption =
@@ -1182,9 +1036,9 @@ function candidateIdFromEmail(email: string): string {
   return `can-${(hash >>> 0).toString(36)}`;
 }
 
-function getCandidatesByEmail(): Map<string, AdminApplication[]> {
+async function getCandidatesByEmail(): Promise<Map<string, AdminApplication[]>> {
   const grouped = new Map<string, AdminApplication[]>();
-  for (const app of getAdminApplicationStore()) {
+  for (const app of await getAllApplications()) {
     const key = app.candidateEmail.trim().toLowerCase();
     const existing = grouped.get(key);
     if (existing) {
@@ -1200,11 +1054,11 @@ function candidateEmailKey(email: string): string {
   return email.trim().toLowerCase();
 }
 
-export function getAdminCandidatesList(
+export async function getAdminCandidatesList(
   query: AdminCandidatesQuery
-): AdminCandidatesListResult {
-  const grouped = getCandidatesByEmail();
-  const jobOptions = getApplicationJobOptions(getAdminApplicationStore());
+): Promise<AdminCandidatesListResult> {
+  const grouped = await getCandidatesByEmail();
+  const jobOptions = getApplicationJobOptions(await getAllApplications());
 
   const candidates: CandidateListItem[] = [];
   for (const [, apps] of grouped) {
@@ -1390,11 +1244,11 @@ export interface AdminCandidateDetailResult {
   summary: CandidateDetailSummary;
 }
 
-export function getAdminCandidateDetail(
+export async function getAdminCandidateDetail(
   id: string,
   status?: string
-): AdminCandidateDetailResult | null {
-  const grouped = getCandidatesByEmail();
+): Promise<AdminCandidateDetailResult | null> {
+  const grouped = await getCandidatesByEmail();
   for (const emailKey of grouped.keys()) {
     if (candidateIdFromEmail(emailKey) !== id) continue;
     const apps = grouped.get(emailKey) || [];
@@ -1573,8 +1427,10 @@ export function isSchedulableApplication(app: AdminApplication): boolean {
   return app.status === "interview" && !app.interviewDate;
 }
 
-function getApplicationOptionsForInterviews(): InterviewApplicationOption[] {
-  return getAdminApplicationStore()
+async function getApplicationOptionsForInterviews(): Promise<
+  InterviewApplicationOption[]
+> {
+  return (await getAllApplications())
     .filter(isSchedulableApplication)
     .map((a) => ({
       applicationId: a.id,
@@ -1587,13 +1443,13 @@ function getApplicationOptionsForInterviews(): InterviewApplicationOption[] {
     }));
 }
 
-export function getAdminInterviewsList(
+export async function getAdminInterviewsList(
   query: AdminInterviewsQuery
-): AdminInterviewsListResult {
-  const applications = getAdminApplicationStore();
+): Promise<AdminInterviewsListResult> {
+  const applications = await getAllApplications();
   const records = applications.filter(isInterviewRecord);
   const jobOptions = getApplicationJobOptions(applications);
-  const applicationOptions = getApplicationOptionsForInterviews();
+  const applicationOptions = await getApplicationOptionsForInterviews();
 
   const now = Date.now();
   const summary: InterviewSummary = {
@@ -1714,13 +1570,17 @@ export function getAdminInterviewsList(
   };
 }
 
-export function getAdminInterviewById(
+export async function getAdminInterviewById(
   interviewId: string
-): InterviewListItem | null {
+): Promise<InterviewListItem | null> {
   const applicationId = applicationIdFromInterviewId(interviewId);
   if (!applicationId) return null;
-  const app = getAdminApplicationStore().find((a) => a.id === applicationId);
-  if (!app || !isInterviewRecord(app)) return null;
+  const row = await prisma.application.findUnique({
+    where: { id: applicationId },
+  });
+  if (!row) return null;
+  const app = toAdminApplication(row);
+  if (!isInterviewRecord(app)) return null;
   return toInterviewListItem(app);
 }
 
@@ -1760,15 +1620,21 @@ export interface InterviewMutationResult {
   status: number;
 }
 
-export function scheduleInterview(input: {
+export async function scheduleInterview(input: {
   applicationId: string;
   date: string;
   time: string;
   location?: string;
   notes?: string;
-}): InterviewMutationResult {
-  const app = getAdminApplicationStore().find((a) => a.id === input.applicationId);
-  if (!app || !isInterviewRecord(app)) {
+}): Promise<InterviewMutationResult> {
+  const row = await prisma.application.findUnique({
+    where: { id: input.applicationId },
+  });
+  if (!row) {
+    return { error: "Application not found.", status: 404 };
+  }
+  const app = toAdminApplication(row);
+  if (!isInterviewRecord(app)) {
     return { error: "Application not found.", status: 404 };
   }
   if (app.status !== "interview") {
@@ -1793,16 +1659,21 @@ export function scheduleInterview(input: {
     return { error: "Interview date and time cannot be in the past.", status: 400 };
   }
 
-  app.interviewStatus = "scheduled";
-  app.interviewDate = input.date;
-  app.interviewTime = input.time;
-  app.interviewLocation = cleanInterviewText(input.location);
-  app.interviewNotes = cleanInterviewText(input.notes);
+  const updated = await prisma.application.update({
+    where: { id: input.applicationId },
+    data: {
+      interviewStatus: "scheduled",
+      interviewDate: input.date,
+      interviewTime: input.time,
+      interviewLocation: cleanInterviewText(input.location),
+      interviewNotes: cleanInterviewText(input.notes),
+    },
+  });
 
-  return { interview: toInterviewListItem(app), status: 201 };
+  return { interview: toInterviewListItem(toAdminApplication(updated)), status: 201 };
 }
 
-export function rescheduleInterview(
+export async function rescheduleInterview(
   interviewId: string,
   input: {
     date: string;
@@ -1810,11 +1681,17 @@ export function rescheduleInterview(
     location?: string;
     notes?: string;
   }
-): InterviewMutationResult {
+): Promise<InterviewMutationResult> {
   const applicationId = applicationIdFromInterviewId(interviewId);
   if (!applicationId) return { error: "Interview not found.", status: 404 };
-  const app = getAdminApplicationStore().find((a) => a.id === applicationId);
-  if (!app || !isInterviewRecord(app)) {
+  const row = await prisma.application.findUnique({
+    where: { id: applicationId },
+  });
+  if (!row) {
+    return { error: "Interview not found.", status: 404 };
+  }
+  const app = toAdminApplication(row);
+  if (!isInterviewRecord(app)) {
     return { error: "Interview not found.", status: 404 };
   }
   if (!app.interviewDate) {
@@ -1833,20 +1710,33 @@ export function rescheduleInterview(
     return { error: "Interview date and time cannot be in the past.", status: 400 };
   }
 
-  app.interviewStatus = "scheduled";
-  app.interviewDate = input.date;
-  app.interviewTime = input.time;
-  app.interviewLocation = cleanInterviewText(input.location);
-  app.interviewNotes = cleanInterviewText(input.notes);
+  const updated = await prisma.application.update({
+    where: { id: applicationId },
+    data: {
+      interviewStatus: "scheduled",
+      interviewDate: input.date,
+      interviewTime: input.time,
+      interviewLocation: cleanInterviewText(input.location),
+      interviewNotes: cleanInterviewText(input.notes),
+    },
+  });
 
-  return { interview: toInterviewListItem(app), status: 200 };
+  return { interview: toInterviewListItem(toAdminApplication(updated)), status: 200 };
 }
 
-export function cancelInterview(interviewId: string): InterviewMutationResult {
+export async function cancelInterview(
+  interviewId: string
+): Promise<InterviewMutationResult> {
   const applicationId = applicationIdFromInterviewId(interviewId);
   if (!applicationId) return { error: "Interview not found.", status: 404 };
-  const app = getAdminApplicationStore().find((a) => a.id === applicationId);
-  if (!app || !isInterviewRecord(app)) {
+  const row = await prisma.application.findUnique({
+    where: { id: applicationId },
+  });
+  if (!row) {
+    return { error: "Interview not found.", status: 404 };
+  }
+  const app = toAdminApplication(row);
+  if (!isInterviewRecord(app)) {
     return { error: "Interview not found.", status: 404 };
   }
   if (!app.interviewDate) {
@@ -1859,9 +1749,12 @@ export function cancelInterview(interviewId: string): InterviewMutationResult {
     return { error: "A completed interview cannot be cancelled.", status: 400 };
   }
 
-  app.interviewStatus = "cancelled";
+  const updated = await prisma.application.update({
+    where: { id: applicationId },
+    data: { interviewStatus: "cancelled" },
+  });
 
-  return { interview: toInterviewListItem(app), status: 200 };
+  return { interview: toInterviewListItem(toAdminApplication(updated)), status: 200 };
 }
 
 export type TeamJobsFilter = "with" | "without";
@@ -1901,12 +1794,16 @@ export interface AdminTeamsListResult {
   summary: TeamSummary;
 }
 
-export function getAdminTeamsList(query: AdminTeamsQuery): AdminTeamsListResult {
-  const jobDepartmentById = new Map(mockJobs.map((j) => [j.id, j.department]));
-  const applications = getApplications();
+export async function getAdminTeamsList(
+  query: AdminTeamsQuery
+): Promise<AdminTeamsListResult> {
+  const teams = await getAllTeams();
+  const jobs = await getAllJobs();
+  const jobDepartmentById = new Map(jobs.map((j) => [j.id, j.department]));
+  const applications = await getAllApplications();
 
-  const base: TeamListItem[] = careersTeams.map((team) => {
-    const jobCount = mockJobs.filter(
+  const base: TeamListItem[] = teams.map((team) => {
+    const jobCount = jobs.filter(
       (j) => j.status === "Open" && team.departments.includes(j.department)
     ).length;
     const applicationCount = applications.filter((a) => {

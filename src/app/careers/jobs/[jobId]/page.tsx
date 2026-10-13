@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getJobById } from "@/components/careers/mock-jobs";
+import { getAdminJobById, getSimilarJobs } from "@/components/admin/admin-data";
 import JobDetailsClient from "@/components/careers/JobDetailsClient";
 
 interface JobDetailPageProps {
@@ -11,7 +11,7 @@ export async function generateMetadata({
   params,
 }: JobDetailPageProps): Promise<Metadata> {
   const { jobId } = await params;
-  const job = getJobById(jobId);
+  const job = await getAdminJobById(jobId);
   if (!job) {
     return {
       title: "Job Not Found | Careers at Next360",
@@ -30,7 +30,7 @@ export async function generateMetadata({
 
 export default async function JobDetailPage({ params }: JobDetailPageProps) {
   const { jobId } = await params;
-  const job = getJobById(jobId);
+  const job = await getAdminJobById(jobId);
 
   if (!job) {
     return (
@@ -73,7 +73,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
 
   return (
     <>
-      <JobDetailsClient job={job} />
+      <JobDetailsClient job={job} similarJobs={await getSimilarJobs(job, 4)} />
     </>
   );
 }

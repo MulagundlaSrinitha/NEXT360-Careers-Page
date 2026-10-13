@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Job {
+  id                      String   @id
+  title                   String
+  department              String
+  location                String
+  experience              String
+  employmentType          String
+  workMode                String
+  team                    String   @default("")
+  skills                  String[]
+  description             String   @db.Text
+  responsibilities        String[]
+  qualifications          String[]
+  preferredQualifications String[]
+  benefits                String[]
+  postedAt                String
+  status                  String   @default("Draft")
+  teamDescription         String?  @db.Text
+  applications            Application[]
+
+  @@index([status])
+  @@map("jobs")
+}
+
+model Application {
+  id                  String    @id
+  jobId               String
+  job                 Job       @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  jobTitle            String
+  department          String
+  location            String
+  candidateEmail      String
+  candidateFirstName  String
+  candidateLastName   String
+  status              String    @default("applied")
+  appliedAt           DateTime  @default(now())
+  updatedAt           DateTime?
+  phone               String?
+  currentLocation     String?
+  country             String?
+  currentJobTitle     String?
+  currentCompany      String?
+  experienceLevel     String?
+  yearsOfExperience   String?
+  education           Json?
+  resumeFileName      String?
+  resumeFileSize      String?
+  linkedinUrl         String?
+  githubUrl           String?
+  portfolioUrl        String?
+  otherWebsite        String?
+  additionalAnswers   Json?
+  interviewStatus     String?
+  interviewDate       String?
+  interviewTime       String?
+  interviewLocation   String?
+  interviewNotes      String?
+
+  @@unique([jobId, candidateEmail])
+  @@index([status])
+  @@index([candidateEmail])
+  @@map("applications")
+}
+
+model Team {
+  id              String   @id
+  slug            String   @unique
+  name            String
+  description     String   @db.Text
+  longDescription String   @db.Text
+  icon            String
+  departments     String[]
+  roles           String[]
+  skills          String[]
+
+  @@map("teams")
+}

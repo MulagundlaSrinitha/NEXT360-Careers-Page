@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const data = getAdminCandidatesList({
+    const data = await getAdminCandidatesList({
       search,
       status,
       jobId,

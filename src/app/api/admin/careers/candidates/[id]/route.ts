@@ -26,7 +26,7 @@ export async function GET(
       );
     }
 
-    const result = getAdminCandidateDetail(id, status);
+    const result = await getAdminCandidateDetail(id, status);
     if (!result) {
       return NextResponse.json(
         { error: "Candidate not found." },

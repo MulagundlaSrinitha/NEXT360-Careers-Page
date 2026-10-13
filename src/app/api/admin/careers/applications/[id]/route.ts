@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getJobById } from "@/components/careers/mock-jobs";
 import {
+  getAdminJobById,
   getAdminApplicationById,
   getApplicationTransitions,
   updateAdminApplicationStatus,
@@ -16,7 +16,7 @@ interface RouteContext {
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const application = getAdminApplicationById(id);
+    const application = await getAdminApplicationById(id);
 
     if (!application) {
       return NextResponse.json(
@@ -25,7 +25,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       );
     }
 
-    const job = getJobById(application.jobId) ?? null;
+    const job = (await getAdminJobById(application.jobId)) ?? null;
 
     return NextResponse.json({ application, job });
   } catch {
@@ -39,7 +39,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const application = getAdminApplicationById(id);
+    const application = await getAdminApplicationById(id);
 
     if (!application) {
       return NextResponse.json(
@@ -99,7 +99,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const updated = updateAdminApplicationStatus(id, status);
+    const updated = await updateAdminApplicationStatus(id, status);
 
     if (!updated) {
       return NextResponse.json(

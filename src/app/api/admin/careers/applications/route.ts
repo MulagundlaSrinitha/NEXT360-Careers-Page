@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const data = getAdminApplicationsList({
+    const data = await getAdminApplicationsList({
       search,
       status,
       jobId,

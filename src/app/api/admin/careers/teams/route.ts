@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid sort value." }, { status: 400 });
     }
 
-    const data = getAdminTeamsList({
+    const data = await getAdminTeamsList({
       search,
       jobs,
       sort: sortParam as TeamSortOption,

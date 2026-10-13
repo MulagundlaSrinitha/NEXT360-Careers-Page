@@ -4,7 +4,6 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Job, JobFilters, SortOption } from "./types";
-import { mockJobs } from "./mock-jobs";
 import CareersNavbar from "./CareersNavbar";
 import CareersFooter from "./CareersFooter";
 import JobSearchBar from "./JobSearchBar";
@@ -114,8 +113,9 @@ export default function JobsPageClient() {
   });
   const [savedJobs, setSavedJobs] = useState<Set<string>>(() => getSavedJobs());
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [isLoading] = useState(false);
-  const [hasError] = useState(false);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   // Update URL when filters change
   useEffect(() => {
@@ -123,6 +123,37 @@ export default function JobsPageClient() {
     const url = qs ? `/careers/jobs?${qs}` : "/careers/jobs";
     router.replace(url, { scroll: false });
   }, [filters, sort, page, router]);
+
+  // Fetch published jobs from the server so the listing always reflects
+  // the same data the admin manages. Initial state is empty on both the
+  // server and the client to keep hydration consistent.
+  const [fetchKey, setFetchKey] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadJobs() {
+      try {
+        const res = await fetch("/api/careers/jobs");
+        if (!res.ok) throw new Error("Failed");
+        const json = await res.json();
+        if (!cancelled) {
+          setJobs(Array.isArray(json.jobs) ? json.jobs : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setHasError(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+    void loadJobs();
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchKey]);
 
   const handleToggleSave = useCallback((jobId: string) => {
     setSavedJobs((prev) => {
@@ -166,14 +197,16 @@ export default function JobsPageClient() {
   }, []);
 
   const handleRetry = useCallback(() => {
-    window.location.reload();
+    setIsLoading(true);
+    setHasError(false);
+    setFetchKey((k) => k + 1);
   }, []);
 
   // Compute filtered and sorted results
   const filteredJobs = useMemo(() => {
-    const filtered = filterJobs(mockJobs, filters);
+    const filtered = filterJobs(jobs, filters);
     return sortJobs(filtered, sort);
-  }, [filters, sort]);
+  }, [jobs, filters, sort]);
 
   const totalPages = Math.ceil(filteredJobs.length / ITEMS_PER_PAGE);
   const paginatedJobs = filteredJobs.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);

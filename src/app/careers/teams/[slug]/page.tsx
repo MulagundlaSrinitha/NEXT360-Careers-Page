@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getTeamBySlug } from "@/components/careers/teams-data";
-import { mockJobs } from "@/components/careers/mock-jobs";
+import { getTeamBySlug, getTeamsWithJobCounts } from "@/components/careers/teams-data";
+import { getPublicOpenJobs } from "@/components/admin/admin-data";
 import TeamDetailsClient from "@/components/careers/TeamDetailsClient";
 
 interface TeamPageProps {
@@ -12,7 +12,7 @@ export async function generateMetadata({
   params,
 }: TeamPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const team = getTeamBySlug(slug);
+  const team = await getTeamBySlug(slug);
   if (!team) {
     return {
       title: "Team Not Found | Careers at Next360",
@@ -31,7 +31,7 @@ export async function generateMetadata({
 
 export default async function TeamPage({ params }: TeamPageProps) {
   const { slug } = await params;
-  const team = getTeamBySlug(slug);
+  const team = await getTeamBySlug(slug);
 
   if (!team) {
     return (
@@ -78,18 +78,23 @@ export default async function TeamPage({ params }: TeamPageProps) {
     );
   }
 
-  const teamJobs = mockJobs.filter(
-    (job) =>
-      team.departments.includes(job.department) && job.status === "Open"
+  const openJobs = await getPublicOpenJobs();
+  const teamJobs = openJobs.filter((job) =>
+    team.departments.includes(job.department)
   );
 
   const locations = [...new Set(teamJobs.map((job) => job.location))];
+
+  const relatedTeams = (await getTeamsWithJobCounts())
+    .filter((t) => t.id !== team.id)
+    .slice(0, 3);
 
   return (
     <TeamDetailsClient
       team={team}
       teamJobs={teamJobs}
       locations={locations}
+      relatedTeams={relatedTeams}
     />
   );
 }

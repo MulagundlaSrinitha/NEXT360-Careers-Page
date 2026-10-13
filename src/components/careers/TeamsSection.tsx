@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { teams } from "./careers-data";
+import { getTeamsWithJobCounts } from "./teams-data";
 
 function TeamIcon({ icon }: { icon: string }) {
   const icons: Record<string, ReactNode> = {
@@ -29,7 +29,8 @@ function TeamIcon({ icon }: { icon: string }) {
   return icons[icon] || icons.code;
 }
 
-export default function TeamsSection() {
+export default async function TeamsSection() {
+  const teams = await getTeamsWithJobCounts();
   return (
     <section className="py-16 sm:py-24 bg-white" id="teams">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

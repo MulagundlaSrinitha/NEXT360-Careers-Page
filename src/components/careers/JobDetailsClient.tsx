@@ -3,7 +3,6 @@
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import type { Job } from "./types";
-import { getSimilarJobs } from "./mock-jobs";
 import CareersNavbar from "./CareersNavbar";
 import CareersFooter from "./CareersFooter";
 import JobCard from "./JobCard";
@@ -40,13 +39,13 @@ function formatPostedDate(dateStr: string): string {
 
 interface JobDetailsClientProps {
   job: Job;
+  similarJobs: Job[];
 }
 
-export default function JobDetailsClient({ job }: JobDetailsClientProps) {
+export default function JobDetailsClient({ job, similarJobs }: JobDetailsClientProps) {
   const [savedJobs, setSavedJobs] = useState<Set<string>>(() => getSavedJobs());
   const [copied, setCopied] = useState(false);
 
-  const similarJobs = getSimilarJobs(job, 4);
   const isOpen = job.status === "Open";
   const isClosed = job.status === "Closed";
   const isPaused = job.status === "Paused";

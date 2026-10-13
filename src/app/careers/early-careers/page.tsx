@@ -18,6 +18,9 @@ export const metadata: Metadata = {
     "Explore early-career opportunities at Next360 for students, recent graduates, interns, and entry-level candidates.",
 };
 
+// Team job counts below are read from PostgreSQL at request time.
+export const dynamic = "force-dynamic";
+
 export default function EarlyCareersPage() {
   return (
     <>

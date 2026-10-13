@@ -33,7 +33,7 @@ const VALID_STATUSES = ["Draft", "Open", "Closed", "Paused"];
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const job = getAdminJobById(id);
+    const job = await getAdminJobById(id);
 
     if (!job) {
       return NextResponse.json(
@@ -42,7 +42,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       );
     }
 
-    const stats = getJobApplicationStats(job.id);
+    const stats = await getJobApplicationStats(job.id);
     return NextResponse.json({ job, stats });
   } catch {
     return NextResponse.json(
@@ -56,7 +56,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
 
-    if (!getAdminJobById(id)) {
+    if (!(await getAdminJobById(id))) {
       return NextResponse.json(
         { error: "Job not found." },
         { status: 404 }
@@ -126,7 +126,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       }
     }
 
-    const job = updateAdminJob(id, patch as UpdateJobInput);
+    const job = await updateAdminJob(id, patch as UpdateJobInput);
 
     if (!job) {
       return NextResponse.json(
@@ -135,7 +135,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const stats = getJobApplicationStats(job.id);
+    const stats = await getJobApplicationStats(job.id);
     return NextResponse.json({ job, stats });
   } catch {
     return NextResponse.json(

@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import CareersNavbar from "./CareersNavbar";
 import CareersFooter from "./CareersFooter";
 import {
-  searchTeams,
   careerAreas,
   getIcon,
+} from "./team-display";
+import {
   type Team,
 } from "./teams-data";
 
@@ -66,8 +67,47 @@ function TeamCard({ team }: TeamCardProps) {
 
 export default function TeamsPageClient() {
   const [query, setQuery] = useState("");
+  const [teams, setTeams] = useState<Array<Team & { jobCount: number }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredTeams = useMemo(() => searchTeams(query), [query]);
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTeams() {
+      try {
+        const res = await fetch("/api/careers/teams");
+        if (!res.ok) throw new Error("Failed");
+        const json = await res.json();
+        if (!cancelled) {
+          setTeams(Array.isArray(json.teams) ? json.teams : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setTeams([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+    void loadTeams();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filteredTeams = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    if (!q) return teams;
+    return teams.filter(
+      (team) =>
+        team.name.toLowerCase().includes(q) ||
+        team.description.toLowerCase().includes(q) ||
+        team.roles.some((role) => role.toLowerCase().includes(q)) ||
+        team.skills.some((skill) => skill.toLowerCase().includes(q)) ||
+        team.departments.some((dept) => dept.toLowerCase().includes(q))
+    );
+  }, [teams, query]);
 
   return (
     <>
@@ -170,7 +210,17 @@ export default function TeamsPageClient() {
           </div>
 
           {/* Team Grid or Empty State */}
-          {filteredTeams.length > 0 ? (
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+                  <div className="h-10 w-10 bg-gray-200 rounded-lg mb-4" />
+                  <div className="h-5 bg-gray-200 rounded w-32 mb-2" />
+                  <div className="h-4 bg-gray-200 rounded w-full" />
+                </div>
+              ))}
+            </div>
+          ) : filteredTeams.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredTeams.map((team) => (
                 <TeamCard key={team.id} team={team} />

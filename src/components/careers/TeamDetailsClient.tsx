@@ -5,7 +5,8 @@ import Link from "next/link";
 import CareersNavbar from "./CareersNavbar";
 import CareersFooter from "./CareersFooter";
 import JobCard from "./JobCard";
-import { teams, getIcon, getJobCountForTeam } from "./teams-data";
+import { getIcon } from "./team-display";
+import type { Team } from "./teams-data";
 import type { Job } from "./types";
 
 interface TeamDetailsClientProps {
@@ -22,12 +23,14 @@ interface TeamDetailsClientProps {
   };
   teamJobs: Job[];
   locations: string[];
+  relatedTeams: Array<Team & { jobCount: number }>;
 }
 
 export default function TeamDetailsClient({
   team,
   teamJobs,
   locations,
+  relatedTeams,
 }: TeamDetailsClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
@@ -77,10 +80,6 @@ export default function TeamDetailsClient({
       return matchesSearch && matchesLocation && matchesExperience;
     });
   }, [teamJobs, searchQuery, locationFilter, experienceFilter]);
-
-  const relatedTeams = teams
-    .filter((t) => t.id !== team.id)
-    .slice(0, 3);
 
   const uniqueExperiences = [
     ...new Set(teamJobs.map((job) => job.experience)),
@@ -461,7 +460,7 @@ export default function TeamDetailsClient({
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {relatedTeams.map((relatedTeam) => {
-                const jobCount = getJobCountForTeam(relatedTeam);
+                const jobCount = relatedTeam.jobCount;
                 return (
                   <Link
                     key={relatedTeam.id}

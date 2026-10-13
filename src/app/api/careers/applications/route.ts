@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getJobById } from "@/components/careers/mock-jobs";
 import type { EducationRecord } from "@/components/careers/mock-applications";
-import { createAdminApplication } from "@/components/admin/admin-data";
+import {
+  getAdminJobById,
+  createAdminApplication,
+} from "@/components/admin/admin-data";
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
@@ -78,7 +80,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const job = getJobById(input.jobId as string);
+    const job = await getAdminJobById(input.jobId as string);
     if (!job) {
       return NextResponse.json(
         { error: "Job not found." },
@@ -86,7 +88,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const application = createAdminApplication({
+    const application = await createAdminApplication({
       jobId: job.id,
       candidateEmail: (input.candidateEmail as string).trim(),
       candidateFirstName: (input.candidateFirstName as string).trim(),

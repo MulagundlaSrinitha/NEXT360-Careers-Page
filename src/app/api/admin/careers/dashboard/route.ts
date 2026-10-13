@@ -3,7 +3,7 @@ import { getDashboardData } from "@/components/admin/admin-data";
 
 export async function GET() {
   try {
-    const data = getDashboardData();
+    const data = await getDashboardData();
     return NextResponse.json(data);
   } catch {
     return NextResponse.json(

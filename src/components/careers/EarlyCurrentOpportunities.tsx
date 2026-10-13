@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { mockJobs } from "./mock-jobs";
+import type { Job } from "./types";
 import JobCard from "./JobCard";
 
 const STORAGE_KEY = "next360_saved_jobs";
@@ -22,15 +22,43 @@ export default function EarlyCurrentOpportunities() {
   const [filter, setFilter] = useState<"all" | "internship" | "entry-level">(
     "all"
   );
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadJobs() {
+      try {
+        const res = await fetch("/api/careers/jobs");
+        if (!res.ok) throw new Error("Failed");
+        const json = await res.json();
+        if (!cancelled) {
+          setJobs(Array.isArray(json.jobs) ? json.jobs : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setJobs([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+    void loadJobs();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const earlyCareerJobs = useMemo(() => {
-    return mockJobs.filter((job) => {
+    return jobs.filter((job) => {
       if (job.status !== "Open") return false;
       return (
         job.experience === "Internship" || job.experience === "0-2 years"
       );
     });
-  }, []);
+  }, [jobs]);
 
   const filteredJobs = useMemo(() => {
     if (filter === "all") return earlyCareerJobs;
@@ -72,7 +100,13 @@ export default function EarlyCurrentOpportunities() {
           </p>
         </div>
 
-        {earlyCareerJobs.length > 0 ? (
+        {isLoading ? (
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-40 bg-gray-200 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        ) : earlyCareerJobs.length > 0 ? (
           <>
             {/* Filter tabs */}
             <div className="flex flex-wrap items-center gap-2 mb-6">

@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const data = getAdminInterviewsList({
+    const data = await getAdminInterviewsList({
       search,
       status,
       jobId,
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = scheduleInterview({ applicationId, date, time, location, notes });
+    const result = await scheduleInterview({ applicationId, date, time, location, notes });
 
     if (result.error || !result.interview) {
       return NextResponse.json(

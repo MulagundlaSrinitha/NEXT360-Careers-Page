@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { getTeamsWithJobCounts } from "./teams-data";
 
-export default function CareerAreasGrid() {
-  const teamsWithCounts = getTeamsWithJobCounts();
+export default async function CareerAreasGrid() {
+  const teamsWithCounts = await getTeamsWithJobCounts();
 
   return (
     <section className="bg-gray-50 border-t border-gray-100">

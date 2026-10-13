@@ -55,7 +55,7 @@ export default async function AdminCandidateDetailsPage({
   params,
 }: AdminCandidateDetailsPageProps) {
   const { id } = await params;
-  const initialData = getAdminCandidateDetail(id);
+  const initialData = await getAdminCandidateDetail(id);
 
   return (
     <Suspense fallback={<CandidateDetailsFallback />}>

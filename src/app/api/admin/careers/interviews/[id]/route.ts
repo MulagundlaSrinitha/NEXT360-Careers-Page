@@ -14,7 +14,7 @@ interface RouteContext {
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const interview = getAdminInterviewById(id);
+    const interview = await getAdminInterviewById(id);
 
     if (!interview) {
       return NextResponse.json(
@@ -36,7 +36,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
 
-    const existing = getAdminInterviewById(id);
+    const existing = await getAdminInterviewById(id);
     if (!existing) {
       return NextResponse.json(
         { error: "Interview not found." },
@@ -65,7 +65,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const action = typeof record.action === "string" ? record.action : "";
 
     if (action === "cancel") {
-      const result = cancelInterview(id);
+      const result = await cancelInterview(id);
       if (result.error || !result.interview) {
         return NextResponse.json(
           { error: result.error || "Unable to cancel interview." },
@@ -95,7 +95,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const result = rescheduleInterview(id, { date, time, location, notes });
+    const result = await rescheduleInterview(id, { date, time, location, notes });
     if (result.error || !result.interview) {
       return NextResponse.json(
         { error: result.error || "Unable to reschedule interview." },
