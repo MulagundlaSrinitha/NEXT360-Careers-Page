@@ -1,40 +1,151 @@
-<<<<<<< HEAD
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NEXT360-Careers-Page
 
-## Getting Started
+The Next360 careers site: a public careers portal plus an internal admin dashboard for
+running recruitment. Built with Next.js (App Router), React, TypeScript, Tailwind CSS v4,
+and Prisma on PostgreSQL.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+**Public careers site (`/careers`)**
+
+- Landing page, "About", "Life at Next360", "Early Careers", "Teams", "FAQ"
+- Job search with department / location / experience / work-mode filters, sorting, pagination
+- Job detail pages and an application form
+- Candidate-facing application tracker (`/careers/applications`)
+
+**Admin dashboard (`/admin/careers`)**
+
+- Overview dashboard with recruiting metrics
+- Job CRUD (create, edit, publish, archive)
+- Candidate and application review with status transitions
+- Interview scheduling and notes
+- Team management
+- Platform settings
+
+## Tech stack
+
+| Concern    | Choice                                        |
+| ---------- | --------------------------------------------- |
+| Framework  | Next.js 16 (App Router, Turbopack)            |
+| UI         | React 19, Tailwind CSS v4, TypeScript         |
+| Data       | Prisma 7 with the `@prisma/adapter-pg` driver |
+| Database   | PostgreSQL                                    |
+| Lint       | ESLint 9 with `eslint-config-next`            |
+
+## Requirements
+
+- Node.js 20+
+- A PostgreSQL database
+
+## Getting started
+
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+   The `postinstall` hook runs `prisma generate`, so the Prisma Client is always in sync
+   with `prisma/schema.prisma`.
+
+2. Configure the database connection. Create `.env.local` in the project root:
+
+   ```bash
+   DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/next360_careers?schema=public"
+   ```
+
+3. Apply the database schema and seed data:
+
+   ```bash
+   npm run prisma:migrate
+   ```
+
+4. Start the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000). The root route redirects to
+   `/careers`.
+
+## Scripts
+
+| Script                  | Description                                    |
+| ----------------------- | ---------------------------------------------- |
+| `npm run dev`           | Start the dev server                           |
+| `npm run build`         | Production build                               |
+| `npm start`             | Serve the production build                     |
+| `npm run lint`          | Run ESLint                                     |
+| `npm run typecheck`     | Run `tsc --noEmit`                             |
+| `npm run prisma:generate` | Regenerate the Prisma Client                 |
+| `npm run prisma:migrate`  | Apply pending migrations                     |
+
+## Data model
+
+`prisma/schema.prisma` defines three models:
+
+- **Job** — a posting, including team, skills, responsibilities, qualifications, benefits,
+  and status (`Draft` / `Published` / …).
+- **Application** — a candidate's application for a job, including profile details, resume
+  metadata, and interview scheduling fields.
+- **Team** — a team taxonomy record used to group jobs and describe team areas.
+
+Migrations live in `prisma/migrations`. The `seed_teams` migration inserts the seven
+Next360 team records idempotently.
+
+## Project structure
+
+```
+prisma/
+  schema.prisma          # Data model
+  migrations/            # Versioned SQL migrations
+src/
+  app/
+    careers/             # Public careers site
+    admin/careers/       # Admin dashboard pages
+    api/careers/         # Public API routes
+    api/admin/careers/   # Admin API routes
+  components/
+    careers/             # Public site components
+    admin/               # Admin dashboard components
+  lib/prisma.ts          # Prisma client singleton
+patches/braces/          # Locally patched dependency (see below)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Vendored dependency patch
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`patches/braces` is a local build of `braces@3.0.3` with a maximum brace nesting depth
+guard, applied via the `overrides` field in `package.json`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Upstream `braces` has no released fix for [CVE-2026-93687](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)
+(gh advisory `GHSA-vfj7-8cjw-p6xm`): deeply nested brace patterns can exhaust the call stack
+in the recursive AST walkers. The patch enforces a depth limit in `parse()` and adds depth
+guards to the `compile()` and `expand()` walkers, so the vulnerability is fixed at the
+source rather than only in the downstream walker.
 
-## Learn More
+To verify the patch, run:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run test:vendor
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This checks that the patched package is the one actually resolved, that normal expansion,
+ranges, and compilation are unchanged, that deeply nested patterns are rejected instead of
+overflowing the stack, and (when an upstream copy is available via `UPSTREAM_BRACES_DIR`)
+that output matches upstream `braces@3.0.3` byte for byte.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Once upstream ships a fixed release, remove the `overrides` entry and the `patches/braces`
+directory, then delete `fill-range` from `devDependencies`.
 
-## Deploy on Vercel
+## Deploying
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The app is a standard Next.js application and deploys to any platform that supports it.
+Vercel is the path of least resistance:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-=======
-# NEXT360-Careers-Page
->>>>>>> origin/main
+```bash
+npx vercel
+```
+
+Set `DATABASE_URL` in the deployment environment and run `npm run prisma:migrate` as part of
+your release step.
