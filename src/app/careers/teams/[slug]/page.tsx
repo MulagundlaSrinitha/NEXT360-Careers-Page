@@ -4,6 +4,9 @@ import { getTeamBySlug, getTeamsWithJobCounts } from "@/components/careers/teams
 import { getPublicOpenJobs } from "@/components/admin/admin-data";
 import TeamDetailsClient from "@/components/careers/TeamDetailsClient";
 
+// The team, related teams, and open roles below are read from PostgreSQL.
+export const dynamic = "force-dynamic";
+
 interface TeamPageProps {
   params: Promise<{ slug: string }>;
 }

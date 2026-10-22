@@ -48,7 +48,11 @@ and Prisma on PostgreSQL.
    The `postinstall` hook runs `prisma generate`, so the Prisma Client is always in sync
    with `prisma/schema.prisma`.
 
-2. Configure the database connection. Create `.env.local` in the project root:
+2. Configure the database connection. Copy the template and fill in your own values:
+
+   ```bash
+   cp .env.example .env.local
+   ```
 
    ```bash
    DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/next360_careers?schema=public"
@@ -147,5 +151,41 @@ Vercel is the path of least resistance:
 npx vercel
 ```
 
-Set `DATABASE_URL` in the deployment environment and run `npm run prisma:migrate` as part of
-your release step.
+### 1. Provision a reachable PostgreSQL database
+
+The database must be reachable **from the deployed app**, so a local PostgreSQL instance
+will not work. Use a managed provider such as Neon, Supabase, Vercel Postgres, Railway, or
+Amazon RDS.
+
+### 2. Set `DATABASE_URL`
+
+In Vercel: **Project → Settings → Environment Variables**, add `DATABASE_URL` with the
+connection string, and enable it for **Production**, **Preview**, and **Development** as
+needed. Do not commit the value to the repository.
+
+### 3. Apply the schema
+
+Run the migrations against the deployed database once:
+
+```bash
+DATABASE_URL="postgresql://..." npx prisma migrate deploy
+```
+
+`prisma migrate deploy` applies any pending migrations and seeds the seven team records.
+
+### 4. Deploy
+
+Push to `main` (or run `npx vercel`). The build runs `npm install` (which generates the
+Prisma Client) followed by `next build`.
+
+### Build-time vs. runtime database access
+
+The build **does not** require a reachable database. Every route that reads from PostgreSQL
+is marked `export const dynamic = "force-dynamic"` and is rendered on request, so
+`next build` succeeds even when `DATABASE_URL` is not set in the build environment. This
+avoids the `Can't reach database server` prerender failure that a static route hitting the
+database would cause on hosted platforms.
+
+`DATABASE_URL` is still required at runtime — if it is missing, the app responds with an
+explicit error explaining that it must be set rather than failing with an opaque connection
+error.

@@ -19,6 +19,9 @@ export const metadata: Metadata = {
     "Explore career opportunities at Next360 Organic Products Pvt. Ltd. Find jobs across technology, product, operations, business, and more.",
 };
 
+// The teams section below reads team and job counts from PostgreSQL.
+export const dynamic = "force-dynamic";
+
 export default function CareersPage() {
   return (
     <>
