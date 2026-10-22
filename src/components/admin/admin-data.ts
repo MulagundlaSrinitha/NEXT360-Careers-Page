@@ -288,8 +288,13 @@ export async function getAdminJobById(id: string): Promise<Job | undefined> {
 }
 
 export async function getPublicOpenJobs(): Promise<Job[]> {
-  const rows = await prisma.job.findMany({ where: { status: "Open" } });
-  return rows.map(toJob);
+  try {
+    const rows = await prisma.job.findMany({ where: { status: "Open" } });
+    return rows.map(toJob);
+  } catch (error) {
+    console.error("[admin-data] Failed to load public open jobs:", error);
+    return [];
+  }
 }
 
 export async function getJobById(id: string): Promise<Job | undefined> {
